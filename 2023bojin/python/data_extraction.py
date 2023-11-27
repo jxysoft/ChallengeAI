@@ -102,7 +102,7 @@ def process_sql_answer(answer):
 # 获取格式化的答案
 def get_formatted_answer(template, question, answer):
     prompt = template.format_messages(q=question, a=answer)
-    resp = client.chat.completions.create(model="Tongyi-Finance-14B-Chat", messages=[{"role": "user", "content": prompt[0].content}], temperature=0.1, top_p=0.5)
+    resp = client.chat.completions.create(model="Tongyi-Finance-14B-Chat", messages=[{"role": "user", "content": prompt[0].content}], temperature=0.6, top_p=0.5)
     return resp.choices[0].message.content
 # 执行SQL查询并获取结果
 def execute_sql_query(conn, query):

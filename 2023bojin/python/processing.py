@@ -7,6 +7,7 @@ from utils import read_jsonl
 from config import project_config
 import pandas as pd
 import os
+import json
 
 
 def extract_company_names():
@@ -61,3 +62,40 @@ def split_questions_by_type():
 
     df_text.to_csv(project_config.text_questions_path)
     df_data.to_csv(project_config.data_questions_path)
+
+
+def integrate_outputs():
+    # 读取文本理解和数据查询的答案文件
+    data = []
+    i = 0
+    i1 = 0
+    i2 = 0
+    df1 = pd.read_csv(project_config.text_answer_path,index_col=0)[['id', 'question', 'answer']]
+    df2 = pd.read_csv(project_config.data_answer_path,index_col=0)[['id', 'question', 'formatted_answer']]
+    df2.columns = ['id', 'question', 'answer']
+    #print(df1.columns)
+    #print(df2.columns)
+
+    while i < 1000:
+        try:
+            element = {}
+            element['id'] = i
+            if i1 < df1.shape[0] and i == df1.at[i1, 'id']:
+                element['question'] = df1.at[i1, 'question']
+                element['answer'] = df1.at[i1, 'answer']
+                i1 += 1
+            if i2 < df2.shape[0] and i == df2.at[i2, 'id']:
+                element['question'] = df2.at[i2, 'question']
+                element['answer'] = df2.at[i2, 'answer']
+                i2 += 1
+            i += 1
+            data.append(element)
+        except:
+            break
+    #print(data)
+    with open(project_config.answer_path, 'w', encoding='utf-8') as file:
+        for record in data:
+            #print(record)
+            json_record = json.dumps(record, ensure_ascii=False)
+            file.write(json_record)
+            file.write('\n')

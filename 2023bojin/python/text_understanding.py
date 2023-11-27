@@ -11,6 +11,9 @@ from model.ai_loader import client
 from utils import cosine_similarity
 from config import project_config
 
+from sentence_transformers import SentenceTransformer
+m3e = SentenceTransformer('moka-ai/m3e-base') 
+
 def text_split(content):
     """ 将文本分割为较小的部分 """
     text_splitter = RecursiveCharacterTextSplitter(
@@ -22,15 +25,26 @@ def text_split(content):
 
 def text_similarity(text, embedding):
     """ 计算文本和问题的相似度 """
-    text_embedding = client.embeddings.create(input=[text], model='moka-ai/m3e-base').data[0].embedding
+    text_embedding = getEmbedding(text)
+    #client.embeddings.create(input=[text], model='moka-ai/m3e-base').data[0].embedding
     return cosine_similarity(text_embedding, embedding)
+
+def getEmbedding(input_text):
+    sentences = []
+    if isinstance(input_text, str):
+        sentences = [input_text]
+    elif isinstance(input_text, list):
+        sentences = input_text
+
+    embeddings = m3e.encode(sentences)
+    return embeddings[0].tolist()
 
 def process_text_question(question, txtdf, text_files_path):
     """ 处理单个问题 """
     try:
         q = question['question']
-        question_embedding = client.embeddings.create(input=[q], model='moka-ai/m3e-base').data[0].embedding
-
+        # question_embedding = client.embeddings.create(input=[q], model='moka-ai/m3e-base').data[0].embedding
+        question_embedding = getEmbedding(q)
         company = question['company']
         file_name = txtdf.loc[txtdf['company'] == company]['filename'].values[0]
         file_path = os.path.join(text_files_path, file_name)
@@ -54,7 +68,7 @@ def process_text_question(question, txtdf, text_files_path):
             "能否根据给定材料回答问题：回答能或否\n"
             "答案：").format_messages(q=q, text="\n".join(top_texts))
 
-        response = client.chat.completions.create(model="Tongyi-Finance-14B-Chat", messages=[{"role": "user", "content": prompt[0].content}], temperature=0.01, top_p=0.5)
+        response = client.chat.completions.create(model="Tongyi-Finance-14B-Chat", messages=[{"role": "user", "content": prompt[0].content}], temperature=0.5, top_p=0.5)
         return response.choices[0].message.content
     except Exception as e:
         print(f"Error processing question: {e}")
@@ -65,8 +79,9 @@ def swifter_process_text_questions():
     txtdf = pd.read_csv(project_config.company_file_path)
     text_files_path = project_config.text_files_path
     # 使用swifter加速apply操作
-    questions_df['answer'] = questions_df.swifter.apply(lambda x: process_text_question(x, txtdf, text_files_path), axis=1)
-    # questions_df['answer'] = questions_df.apply(lambda x: process_text_question(x, txtdf, text_files_path), axis=1)
+    # questions_df['answer'] = questions_df.swifter.apply(lambda x: process_text_question(x, txtdf, text_files_path), axis=1)
+    questions_df['answer'] = questions_df.apply(lambda x: process_text_question(x, txtdf, text_files_path), axis=1)
     questions_df.to_csv(project_config.text_answer_path)
+
 
 
