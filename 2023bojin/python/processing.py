@@ -13,25 +13,53 @@ import json
 def extract_company_names():
     df = pd.DataFrame(columns=['filename', 'company'])
     i = 1
-    for filename in os.listdir(project_config.text_files_path):
+    filepaths = os.listdir(project_config.text_files_path)
+    filepaths.sort()
+    for filename in filepaths:
         if filename.endswith(".txt"):
             file_path = os.path.join(project_config.text_files_path, filename)
             with open(file_path, 'r', encoding='utf-8') as file:
                 content = file.read()
                 template = ChatPromptTemplate.from_template(
                     "你是一个能精准提取信息的AI。"
-                    "我会给你一篇招股说明书，请输出此招股说明书的主体是哪家公司，若无法查询到，则输出无。\n"
+                    "我会给你一篇招股说明书部分内容，请指出它的主体是哪家公司（一般发行人或者发行人简要情况后面的公司名称也是主体）。"
+                    "如果找到公司，则输出公司名称, 输出格式例如 主体是：xxx\n\n"
                     "{t}\n\n"
-                    "请指出以上招股说明书属于哪家公司，请只输出公司名。"
                 )
-                prompt = template.format_messages(t=content[:3000])
+                max_token = 3000
+                idx = content.find("发行人：")
+                if idx > 0 :
+                    prompt = template.format_messages(t=content[idx:idx+max_token])
+                else:
+                    idx = content.rfind("发行人简要情况")
+                    if idx > 0 and content[idx:idx+100].find(".......") < 0 : # 排除章节
+                        prompt = template.format_messages(t=content[idx:idx+max_token])
+                    else:
+                        prompt = template.format_messages(t=content[:max_token])
+                
                 resp = client.chat.completions.create(model="Tongyi-Finance-14B-Chat",
                                                       messages=[{"role": "user", "content": prompt[0].content}],
-                                                      temperature=0.1, top_p=0.5)
+                                                      temperature=1, top_p=0.5)
                 result = resp.choices[0].message.content
+                # temp 临时人工处理这些公司：
+                if filename == 'f587290218d881e18e88fc1431b022b2c5aca81a.txt':
+                    result = '苏州东微半导体股份有限公司' # todo: 暂时解析不出来
+                elif filename == 'f9e84ce0edd5279773b3ca1f36a9e39d6ceaf220.txt':
+                    result = '杭州中恒电气股份有限公司'
+                elif filename == 'd336d607e1d431cbfe1f313e2234a13fcf49a16e.txt':
+                    result = '湖南国科微电子股份有限公司'
+                elif filename == 'a6f8156c08a1096c46470a1c5e1229daaaedf06e.txt':
+                    result = '成都华气厚普机电设备股份有限公司'
+                elif filename == '54d148902b889679830174597830f0d0f22c1073.txt':
+                    result = '上海派能能源科技股份有限公司'
+                elif result.startswith("主体是："):
+                    result = result[4:]
+                elif result.startswith("主体是"):
+                    result = result[3:]
                 df.at[i, 'filename'] = filename
                 df.at[i, 'company'] = result
                 i += 1
+                print("i=" + str(i - 1) + ",filename=" + filename + ",rst=" + result)
     df.to_csv(project_config.save_path)
 
 
