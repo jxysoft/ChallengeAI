@@ -1,8 +1,12 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
+import os
+def get_base_file_path():
+    return os.path.dirname(os.path.dirname(__file__))
+
 import sys
-sys.path.append('/your/file/path')
+sys.path.append(get_base_file_path())
 
 from processing import extract_company_names, split_questions_by_type,integrate_outputs
 from text_understanding import swifter_process_text_questions

@@ -483,13 +483,13 @@ def _get_args():
         help="Checkpoint name or path, default to %(default)r",
     )
     parser.add_argument(
-        "--cpu-only", action="store_true", help="Run demo with CPU only"
+        "--cpu-only", action="store_true", default=False, help="Run demo with CPU only"
     )
     parser.add_argument(
-        "--all_gpu", action="store_false", default=True, help="Run demo with one or multiple gpus"
+        "--one_gpu", action="store_true", default=False, help="Run demo with one or multiple gpus"
     )
     parser.add_argument(
-        "--use_ms", action="store_false", default=True, help="Run demo with hf or modelscope"
+        "--use_ms", action="store_true", default=False, help="Run demo with hf or modelscope"
     )
     parser.add_argument(
         "--server-port", type=int, default=8000, help="Demo server port."
@@ -513,10 +513,10 @@ if __name__ == "__main__":
 
     if args.cpu_only:
         device_map = "cpu"
-    elif args.all_gpu:
-        device_map = "auto"
-    else:
+    elif args.one_gpu:
         device_map = "cuda:0"
+    else:
+        device_map = "auto"
     
     tokenizer = None
     model = None
