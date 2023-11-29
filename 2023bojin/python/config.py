@@ -22,6 +22,9 @@ class Config:
 
     questions_path = os.path.join(base_path, "input/question.json").replace("\\", "/")
     answer_path = os.path.join(base_path, "output/answer.jsonl")
-
+    max_token_length = 3000
+    model_name = "Tongyi-Finance-14B-Chat"
+    temperature = 0.6
+    top_p = 0.5
 
 project_config = Config()
