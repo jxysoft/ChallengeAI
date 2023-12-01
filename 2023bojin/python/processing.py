@@ -54,7 +54,7 @@ def extract_company_names():
                     alias = result
                 elif filename == 'afa8c5a4a91c3ecf7bd38a1c1f09b8a68e472909.txt':
                     result = '海看网络科技（山东）股份有限公司' 
-                    alias = '山东海看网络科技股份有限公司'
+                    alias = '山东海看网络科技有限公司'
                 elif filename == '28560e1383141e35127388a3f0ca0e7b24919c17.txt':
                     result = '江苏旷达汽车织物集团股份有限公司'
                     alias = '旷达汽车织物集团'
