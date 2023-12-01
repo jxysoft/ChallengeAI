@@ -37,27 +37,40 @@ def extract_company_names():
                     else:
                         prompt = template.format_messages(t=content[:max_token])
                 
-                resp = client.chat.completions.create(model="Tongyi-Finance-14B-Chat",
+                resp = client.chat.completions.create(model=project_config.model_name,
                                                       messages=[{"role": "user", "content": prompt[0].content}],
-                                                      temperature=1, top_p=0.5)
+                                                      temperature=project_config.temperature, top_p=project_config.top_p)
                 result = resp.choices[0].message.content
                 # temp 临时人工处理这些公司：
-                if filename == 'f587290218d881e18e88fc1431b022b2c5aca81a.txt':
-                    result = '苏州东微半导体股份有限公司' # todo: 暂时解析不出来
-                elif filename == 'f9e84ce0edd5279773b3ca1f36a9e39d6ceaf220.txt':
-                    result = '杭州中恒电气股份有限公司'
-                elif filename == 'd336d607e1d431cbfe1f313e2234a13fcf49a16e.txt':
-                    result = '湖南国科微电子股份有限公司'
-                elif filename == 'a6f8156c08a1096c46470a1c5e1229daaaedf06e.txt':
-                    result = '成都华气厚普机电设备股份有限公司'
-                elif filename == '54d148902b889679830174597830f0d0f22c1073.txt':
-                    result = '上海派能能源科技股份有限公司'
+                # elif filename == 'd336d607e1d431cbfe1f313e2234a13fcf49a16e.txt':
+                #     result = '湖南国科微电子股份有限公司'
+                # elif filename == 'a6f8156c08a1096c46470a1c5e1229daaaedf06e.txt':
+                #     result = '成都华气厚普机电设备股份有限公司'
+                # elif filename == '54d148902b889679830174597830f0d0f22c1073.txt':
+                #     result = '上海派能能源科技股份有限公司'
+                
+                if filename == '91b4426b075560a1a45247f9cfa9fa73d56c945c.txt':
+                    result =  "广州中海达卫星导航技术股份有限公司"
+                    alias = result
+                elif filename == 'afa8c5a4a91c3ecf7bd38a1c1f09b8a68e472909.txt':
+                    result = '海看网络科技（山东）股份有限公司' 
+                    alias = '山东海看网络科技股份有限公司'
+                elif filename == '28560e1383141e35127388a3f0ca0e7b24919c17.txt':
+                    result = '江苏旷达汽车织物集团股份有限公司'
+                    alias = '旷达汽车织物集团'
+                    # 中国铁路通信信号股份有限公司
                 elif result.startswith("主体是："):
                     result = result[4:]
+                    alias = result
                 elif result.startswith("主体是"):
                     result = result[3:]
+                    alias = result
+                
+                # 空格处理
+                result = result.replace(" ", "")
                 df.at[i, 'filename'] = filename
                 df.at[i, 'company'] = result
+                df.at[i, 'alias'] = alias
                 i += 1
                 print("i=" + str(i - 1) + ",filename=" + filename + ",rst=" + result)
     df.to_csv(project_config.save_path)
@@ -67,6 +80,7 @@ def split_questions_by_type():
     questions = read_jsonl(project_config.questions_path)
     df = pd.read_csv(project_config.company_file_path)
     company_list = df['company']
+    company_alias_list = df['alias']
 
     df_text = pd.DataFrame(columns=['id', 'question', 'company'])
     df_data = pd.DataFrame(columns=['id', 'question'])
@@ -75,8 +89,9 @@ def split_questions_by_type():
     for question in questions:
         flag = True
         q = question['question']
-        for company in company_list:
-            if company in q:
+        for idx, company in enumerate(company_list):
+            alias = company_alias_list[idx]
+            if company in q or alias in q:
                 df_text.at[i_text, 'id'] = question['id']
                 df_text.at[i_text, 'question'] = question['question']
                 df_text.at[i_text, 'company'] = company
