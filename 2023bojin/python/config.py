@@ -8,7 +8,7 @@ def get_base_file_path():
 class Config:
     base_path = get_base_file_path()
     data_path = os.path.join(base_path, "data")
-    text_files_path = os.path.join(data_path, "txt").replace("\\", "/")
+    text_files_path = os.path.join(data_path, "newtxt").replace("\\", "/")
     db_sqlite_url = os.path.join(data_path, "db/bojin.db").replace("\\", "/")
 
     save_path = os.path.join(data_path, "stock_descriptions/txtfile2company.csv").replace("\\", "/")
