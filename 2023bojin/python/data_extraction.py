@@ -34,7 +34,13 @@ def create_answer_template():
 # 获取SQL回答
 def get_sql_answer(template, db, question):
     prompt = template.format_messages(q=question, db=db.table_info)
-    resp = client.chat.completions.create(model="Tongyi-Finance-14B-Chat", messages=[{"role": "user", "content": prompt[0].content}], temperature=0.7, top_p=0.5)
+    global global_query_id
+    global_query_id += 1
+    print("begin get sql answer queryId = " + str(global_query_id))
+    resp = client.chat.completions.create(model=project_config.model_name,
+                                          messages=[{"role": "user", "content": prompt[0].content}], 
+                                          temperature=project_config.temperature, top_p=project_config.top_p)
+    
     # print(resp.choices[0].message.content)
     return resp.choices[0].message.content
 
@@ -101,8 +107,13 @@ def process_sql_answer(answer):
 
 # 获取格式化的答案
 def get_formatted_answer(template, question, answer):
+    global global_query_id
+    global_query_id += 1
+    print("begin get_formatted_answer queryId = " + str(global_query_id))
     prompt = template.format_messages(q=question, a=answer)
-    resp = client.chat.completions.create(model="Tongyi-Finance-14B-Chat", messages=[{"role": "user", "content": prompt[0].content}], temperature=0.6, top_p=0.5)
+    resp = client.chat.completions.create(model=project_config.model_name, 
+                                          messages=[{"role": "user", "content": prompt[0].content}], 
+                                          temperature=project_config.temperature, top_p=project_config.top_p)
     return resp.choices[0].message.content
 # 执行SQL查询并获取结果
 def execute_sql_query(conn, query):
@@ -123,7 +134,8 @@ def swifter_process_data_questions():
     # 连接数据库
     conn = sqlite3.connect(project_config.db_sqlite_url)
     output = pd.DataFrame(columns=['id', 'question', 'formatted_answer'])
-
+    global global_query_id
+    global_query_id = 0
     for i, row in questions.iterrows():
         sql_result = execute_sql_query(conn, row['answer'])
         formatted_answer = get_formatted_answer(answer_template, row['question'], sql_result)

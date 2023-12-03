@@ -59,6 +59,9 @@ def extract_company_names():
                     result = '江苏旷达汽车织物集团股份有限公司'
                     alias = '旷达汽车织物集团'
                     # 中国铁路通信信号股份有限公司
+                elif filename == '96b461d6c6670928f7dc36f0c947e0c18340d5e2.txt':
+                    result = '湖南南岭民用爆破器材股份有限公司'
+                    alias = '南岭化工厂'
                 elif result.startswith("主体是："):
                     result = result[4:]
                     alias = result

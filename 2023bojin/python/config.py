@@ -23,7 +23,10 @@ class Config:
     questions_path = os.path.join(base_path, "input/question.json").replace("\\", "/")
     answer_path = os.path.join(base_path, "output/answer.jsonl")
     max_token_length = 3000
-    model_name = "Tongyi-Finance-14B-Chat"
+    # model_name = "Tongyi-Finance-14B-Chat"
+    model_name = '"gpt-3.5-turbo"'
+    embedding_model_name = 'moka-ai/m3e-base'
+    # embedding_model_name = '/mnt/workspace/.cache/modelscope/xrunda/m3e-base'
     temperature = 0.6
     top_p = 0.75
 

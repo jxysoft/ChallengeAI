@@ -12,17 +12,21 @@ from utils import cosine_similarity
 from config import project_config
 
 from sentence_transformers import SentenceTransformer
-m3e = SentenceTransformer('moka-ai/m3e-base') 
-# m3e = SentenceTransformer('/mnt/workspace/.cache/modelscope/xrunda/m3e-base') 
+m3e = None
 global_text_id = 0
 
-def text_split(content, chunk_size = 1500, chunk_overlap = 100):
-    """ 将文本分割为较小的部分 """
+
+def get_text_splitter(chunk_size = 1500, chunk_overlap = 100):
     text_splitter = RecursiveCharacterTextSplitter(
         chunk_size=chunk_size,
         chunk_overlap=chunk_overlap,
         separators=['\n\n', "\n", "。"],
         keep_separator=False)
+    return text_splitter
+
+def text_split(content, chunk_size = 1500, chunk_overlap = 100):
+    """ 将文本分割为较小的部分 """
+    text_splitter = get_text_splitter(chunk_size, chunk_overlap)
     return text_splitter.split_text(content)
 
 def text_similarity(text, embedding):
@@ -31,6 +35,11 @@ def text_similarity(text, embedding):
     # client.embeddings.create(input=[text], model='moka-ai/m3e-base').data[0].embedding
     return cosine_similarity(text_embedding, embedding)
 
+def getEmbeddingModel():
+    global m3e
+    if m3e is None:
+        m3e = SentenceTransformer(project_config.embedding_model_name) 
+    return m3e
 
 def getEmbedding(input_text):
     sentences = []
@@ -39,7 +48,7 @@ def getEmbedding(input_text):
     elif isinstance(input_text, list):
         sentences = input_text
 
-    embeddings = m3e.encode(sentences)
+    embeddings = getEmbeddingModel().encode(sentences)
     return embeddings[0].tolist()
 
 
@@ -81,20 +90,6 @@ def process_text_question(question, txtdf, text_files_path):
     try:
         q = question['question']
         company = question['company']
-        if q == "深圳信立泰药业股份有限公司注射用头孢西丁钠（信希汀、1.0克装）在2006 年、2007 年、2008 年、2009 年1-6 月的最高零售价格分别为多少？":
-            return "注射用头孢西丁钠（信希汀、1.0克装）在2006年、2007年、2008年、2009年1-6月的最高零售价格分别为42.20元/盒、42.20元/盒、42.20元/盒和42.20元/盒"
-        elif q == "报告期内大博医疗科技股份有限公司涉诉产品销售收入占公司总营收的比例是多少？":
-            return "0.41%"
-        elif q == "南京中电联环保股份有限公司的住所为？":
-            return "住所为南京市江宁开发区诚信大道1800号"
-        elif q == "烟台杰瑞石油服务集团股份有限公司获得过哪些荣誉称号？":
-            return "曾获“山东省优秀中小企业”、“山东省成长型中小企业”、 2006年度和2007年度“烟台市百强民营企业”等多项荣誉称号"
-        elif q == "确成硅化学股份有限公司的子公司无锡东沃经营范围是？":
-            return "子公司无锡东沃经营范围：生产硫酸；生产中压蒸汽、电。"
-        elif q == "西安启源机电装备股份有限公司专用设备销售价格波动的主要原因是什么？":
-            return "专用设备销售价格波动的主要原因是市场需求的变化以及市场竞争的加剧。"
-        elif q == "根据联化科技股份有限公司招股意见书，精细化工产品的通常利润率是多少？":
-            return "联化科技股份有限公司,根据招股意见书，精细化工产品的通常利润率是在25%-30%之间。"
         if company in q:
             q = q.replace(company, '')
         question_embedding = getEmbedding(q)
@@ -131,4 +126,69 @@ def swifter_process_text_questions():
     questions_df.to_csv(project_config.text_answer_path)
 
 
+###### test vector store
+from langchain.document_loaders import TextLoader
+from langchain.embeddings.sentence_transformer import SentenceTransformerEmbeddings
+from langchain.text_splitter import RecursiveCharacterTextSplitter
+from langchain.text_splitter import CharacterTextSplitter
+from langchain.vectorstores import Chroma
+
+vector_dbs = {}
+small_vector_dbs = {}
+def init_vectorstore():
+    embedding_function = SentenceTransformerEmbeddings(model_name=project_config.embedding_model_name) 
+    text_files_path = project_config.text_files_path
+    txtdf = pd.read_csv(project_config.company_file_path)
+    text_splitter = get_text_splitter(1500, 100)
+    small_text_splitter = get_text_splitter(250, 50)
+    for i, row in txtdf.iterrows():
+        company = row['company']
+        file_name = row['filename']
+        file_path = os.path.join(text_files_path, file_name)
+        loader = TextLoader(file_path)
+        documents = loader.load()
+        docs = text_splitter.split_documents(documents)
+        small_docs = small_text_splitter.split_documents(documents)
+        print("init vectorstore for company=" + company + ", file_path=" + file_path)
+        # load it into Chroma
+        db = Chroma.from_documents(docs, embedding_function)
+        vector_dbs[company] = db
+        small_db = Chroma.from_documents(small_docs, embedding_function)
+        vector_dbs[company] = small_db
+    print("init vectorstore done len=" + str(len(vector_dbs)))
+  
+def vector_get_top_text(db, question, top_k = 3):
+    print("begin vector_get_top_text for question=" + question)
+    docs = db.similarity_search(question,k = top_k)
+    top_texts = [doc.page_content for doc in docs]
+    top_text = "\n".join(top_texts)
+    if len(top_text) > project_config.max_token_length:
+        top_text = top_text[0:project_config.max_token_length]
+    print("top_text=" + top_text)
+    return top_text
+  
+def vector_process_text_question(question):
+    """ 处理单个问题 """
+    try:
+        q = question['question']
+        company = question['company']
+        if company in q:
+            q = q.replace(company, '')
+        vector_db = vector_dbs[company]
+        small_db = small_vector_dbs[company]
+        global global_text_id
+        global_text_id += 1
+        print(f"\nbegin {global_text_id} handle for company=" + company + "\n,question=" + question['question'])
+        
+        top_text = vector_get_top_text(vector_db, q, 3)
+        answer = get_answer(q, top_text)
+        if (answer is None or len(answer) == 0 or answer == '能' or answer == '否' or "无法" in answer or "不能" in answer or answer.startswith("否\n")):
+            # use small split to check agin
+            top_text = vector_get_top_text(small_db, q, 10)
+            return get_answer(q, top_text)
+        else:
+            return answer
+    except Exception as e:
+        print(f"Error processing question: {e}")
+        return None
 
