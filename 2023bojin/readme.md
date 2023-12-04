@@ -12,8 +12,9 @@
 
 # 结果
     虽然很遗憾差一点点没有进入到最终复赛，不过第一次参加这种比赛就得到28名，也算不错了：）
-    ![Alt text](assets/image.png)
-    ![avatar](assets/image-1.png)
+    
+![比赛结果](assets/image.png)
+![比赛结果](assets/image-1.png)
     <p align="left">
         <img src="assets/image.png" width="600"/>
         <img src="assets/image-1.png" width="600"/>
@@ -45,7 +46,9 @@
     - dfd
     - dd
 ``` 
-    code
+    code``` 
 ``` 
 
 ##
+
+
