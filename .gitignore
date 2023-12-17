@@ -160,3 +160,6 @@ cython_debug/
 #.idea/
 2023bojin/data/db/bojin.db
 2023bojin/data/pdf/*.PDF
+2023QwenCode/data/
+2023QwenCode/results/
+2023QwenCode/models/
