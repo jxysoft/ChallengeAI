@@ -93,3 +93,7 @@
     4. 再试试14b跑2*T4卡能否执行推理（flash2等验证看看），可以慢，但是不能oom。
        1. 备选试试vllm
     5. 沉淀经验/技术/模型/Prompt Engineering
+
+
+## 比赛前几名方案
+    1. https://github.com/Tongyi-EconML/FinQwen

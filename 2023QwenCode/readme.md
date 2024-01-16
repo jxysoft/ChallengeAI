@@ -56,3 +56,6 @@
 
 ## todo
     1. evaluate常用数据集跑通，方便以后自己微调评估效果
+   
+## 比赛前几名总结
+    1. https://tianchi.aliyun.com/competition/entrance/532169/forum
